@@ -1,235 +1,205 @@
 #include <iostream>
-#include <map>
-#include <array>
-#include <string>
-#include <sstream>
 using namespace std;
 
 #define MAX_PATH_LENGTH 256
 #define MAX_FILENAME_LENGTH 128
 #define BUFFER_SIZE 128
 
-long FirstSort(int, const char*, const char*);
-int SecondSort(const char*, long, map<array<int, 2>, string>*);
-void BWTCode(const char*, const char*, const char*, int, long, map<array<int, 2>, string>*);
+struct Suffix {
+	char *str;
+	int postion;
+};
+
+void Swap(struct Suffix *a, struct Suffix *b)
+{
+	struct Suffix temp = *a;
+	*a = *b;
+	*b = temp;
+}
+
+bool compare(struct Suffix *a, struct Suffix *b, int delimter){
+	int i = 0;
+	while (a->str[i] == b->str[i]) {
+		int ascii = a->str[i];
+		if(ascii == delimter){
+			return (a->postion < b->postion);
+		}
+		i++;
+	}
+	return (a->str[i] < b->str[i]);
+}
+
+void QuickSort(struct Suffix *suffixes, int len, int delimter)
+{
+	int pvt=0;
+
+	if (len <= 1)
+		return;
+
+	// swap a randomly selected value to the last node
+	Swap(&suffixes[(int)rand() % len], &suffixes[len - 1]);
+
+	// reset the pivot index to zero, then scan
+	for (int i=0; i<len-1; i++)
+	{
+		if (compare(&suffixes[i], &suffixes[len-1], delimter)){
+			Swap(&suffixes[i], &suffixes[pvt++]);
+		}
+	}
+
+	// move the pivot value into its place
+	Swap(&suffixes[pvt], &suffixes[len-1]);
+
+	// and invoke on the subsequences. does NOT include the pivot-slot
+	QuickSort(suffixes, pvt++, delimter);
+	QuickSort(suffixes + pvt, len - pvt, delimter);
+}
 
 int main(int argc, char *argv[]) {
+	// read arguments
 	int delimiter;
 	if(strcmp("\n", argv[1]) == 0){
 		delimiter = 10;
 	} else{
 		delimiter = argv[1][0];
 	}
-	
-	// read arguments
-	//const char* delimiter = argv[1];
 	const char* temp_folder_name = argv[2];
-	const char* orginal_file_name = argv[3];
+	const char* original_file_name = argv[3];
 	const char* bwt_file_name = argv[4];
 	
-	// do first sort
-	long file_size = FirstSort(delimiter, temp_folder_name, orginal_file_name);	
-	// do third sort
-	map<array<int, 2>, string> rank_table;
-	int max_rank = SecondSort(temp_folder_name, file_size, &rank_table);
-	// get BWT code
-	BWTCode(temp_folder_name, orginal_file_name, bwt_file_name, max_rank, file_size, &rank_table);
-}
-
-long FirstSort(int delimiter, const char* temp_folder_name, const char* orginal_file_name){
-	
-	FILE* orginal_file = fopen(orginal_file_name, "r");
-	// file does not exist
-	if (orginal_file == NULL) {
-		cout << "File error" << endl; 
-		exit(0);
-	}
+	/* 
+	read original file into a dynamic size buffer
+	this buffer costs 50MB memory at most and 50MB is much smaller than 2^32-1
+	so we could convert the long type file size to int size safely
+	and this buffer won't be free until the end of this program
+	*/
+	FILE* original_file = fopen(original_file_name, "r");
 	// set the file pointer to the end
-	fseek(orginal_file , 0 , SEEK_END);
+	fseek(original_file , 0 , SEEK_END);
 	// get the file size
-	long file_size = ftell(orginal_file);
+	long file_size = ftell(original_file);
 	// reset file pointer
-	rewind(orginal_file);
+	rewind(original_file);
 	// allocate memory to contain the whole file
-	char* buffer = (char*) malloc(sizeof(char) * file_size);
+	char* buffer = (char*) malloc(sizeof(char) * (file_size + 1));
+	buffer[file_size] = '\0';
 	// allocate memory failed
 	if (buffer == NULL) {
 		cout << "Memory error" << endl;
 		exit(0);
 	}
 	// read file and the reult is the number of chars
-	size_t result = fread(buffer, 1, file_size, orginal_file); 
-	// file size should be as same as the number of chars
-	if (result != file_size) {
-		cout << "Reading error" << endl;
-		exit(0);
-	}
+	fread(buffer, 1, file_size, original_file); 
+	fclose(original_file);
+	cout << "Read File Done!" << endl;
 	
-	/* 
-	build a map to store ranks and index: key:<1,0,1>, value:"1 2 3"
-	first int is current rank, 
-	second int is only for counting the index of delimiter, 
-	third int is next rank.
-	values is a string constructed by index
+	
+	/*
+	bucket sort
+	create 128 buckets for S type characters and another 128 buckets for L type characters
+	assign the index of each character to different buckets according ascii value
 	*/
-	map<array<int, 3>, string> rank_table;
-	int delimiter_index = 0;
-	
-	for (int i = 0; i < file_size; i++) {
-		int current_rank = buffer[i];
-		int next_rank;
-		if( i + 1 == file_size){
-			next_rank = 0;
-		} else {
-			next_rank = buffer[i+1];
-		}
-		
-		array<int, 3> key = {0, 0, 0};
-		if(delimiter == current_rank){
-			key[0] = current_rank;
-			key[1] = delimiter_index;
-			key[2] = next_rank;
-			delimiter_index ++ ;
-		} else {
-			key[0] = current_rank;
-			key[1] = 0;
-			key[2] = next_rank;
-		}
-		
-		char index[16] = {0};
-		// convert index to index string
-		sprintf(index, "%d", i);
-		
-		if ( rank_table.find(key) == rank_table.end() ) {
-			rank_table[key] = index;
-		} else {
-			string temp = rank_table[key];
-			int n = temp.length(); 
-			char index_string[n+1]; 
-			strcpy(index_string, temp.c_str());  
-			strcat(index_string, " ");
-			strcat(index_string, index);
-			rank_table[key] = index_string;
-		}
+	FILE** buckets = (FILE**)malloc(sizeof(FILE*) * 256);
+	for(int i=0; i<256; i++){
+		char bucket_id[4] = {0};
+		sprintf(bucket_id, "%d", i);
+		char bucket_file_path[MAX_PATH_LENGTH] = {0}; 
+		strcpy(bucket_file_path, temp_folder_name);
+		strcat(bucket_file_path, "/");
+		strcat(bucket_file_path, bucket_id);
+		buckets[i] = fopen(bucket_file_path, "a+b");
 	}
-	fclose(orginal_file);
-	free(buffer);
-	
-	// build current rank file
-	char current_rank_file_path[MAX_PATH_LENGTH] = {0};
-	strcpy(current_rank_file_path, temp_folder_name);
-	strcat(current_rank_file_path, "/");
-	strcat(current_rank_file_path, "current_rank");
-	FILE* current_rank_file = fopen(current_rank_file_path, "wb");
-	
-	int rank = 0;
-	int line = 0;
-	map<array<int, 3>, string>::iterator it;
-	for ( it = rank_table.begin(); it != rank_table.end(); it++ ){
-		stringstream ss(it->second);
-		string index_string;
-		while (getline(ss, index_string, ' ')) {
-			line++;
-			if(line == 1){
-				rank ++ ;
-			}
-			stringstream temp(index_string);
-			int index = 0;
-			temp >> index;
-			fseek(current_rank_file, index * 4, SEEK_SET);
-			fwrite(&rank, sizeof(int), 1, current_rank_file);
-		}
-		line = 0;
-	}
-	
-	fclose(current_rank_file);
-	return file_size;
-}
-
-// store information in the format: <rank next_rank; index> (<filename, content>), where next_rank is the rank of current_index+2
-int SecondSort(const char *temp_folder_name, long file_size, map<array<int, 2>, string>* rank_table){
-	char current_rank_file_path[MAX_PATH_LENGTH] = {0};
-	strcpy(current_rank_file_path, temp_folder_name);
-	strcat(current_rank_file_path, "/");
-	strcat(current_rank_file_path, "current_rank");
-	FILE* current_rank_file = fopen(current_rank_file_path, "rb");
-	
-	int max_rank = 1;
-	int rank;
-	for (int i = 0; i < file_size; i++) {		
-		int next_rank;
-		int current_rank;
-		
-		fseek(current_rank_file, i * 4, SEEK_SET);
-		fread(&current_rank, sizeof(int), 1, current_rank_file);
-		
-		if(current_rank > max_rank){
-			max_rank = current_rank;
-		}
-		
-		if( i + 2 >= file_size ){
-			// if there is no next suffix at index + 2, we store next rank as 0
-			next_rank = 0;
-		} else {
-			fseek(current_rank_file, ( i + 2 ) * 4, SEEK_SET);
-			fread(&next_rank, sizeof(int), 1, current_rank_file);
-		}
-		
-		array<int, 2> key = {current_rank, next_rank};
-		
-		char index[16] = {0};
-		// convert index to index string
-		sprintf(index, "%d", i);
-		
-		if ( (*rank_table).find(key) == (*rank_table).end() ) {
-			(*rank_table)[key] = index;
-		} else {
-			string temp = (*rank_table)[key];
-			int n = temp.length(); 
-			char index_string[n+1]; 
-			strcpy(index_string, temp.c_str());  
-			strcat(index_string, " ");
-			strcat(index_string, index);
-			(*rank_table)[key] = index_string;
-		}
-	}
-	
-	fclose(current_rank_file);
-	remove(current_rank_file_path);
-	return max_rank;
-}
-
-// build BWT codes
-// read files(geneated by last step) one by one, and we will get suffix array
-// BWT is suffix array - 1
-void BWTCode(const char* delimiter, const char*  orginal_file_name, const char* bwt_file_name, int max_rank, long file_size, map<array<int, 2>, string>* rank_table){
-	FILE* orginal_file = fopen(orginal_file_name, "r");
-	FILE* bwt_file = fopen(bwt_file_name, "w");
-	
-	map<array<int, 2>, string>::iterator it;
-	for ( it = rank_table->begin(); it != rank_table->end(); it++ ){
-		stringstream ss(it->second);
-		string index_string;
-		while (getline(ss, index_string, ' ')) {
-			stringstream temp(index_string);
-			int index = 0;
-			temp >> index;
-			// reading index in the order of suffix array
-			// look for the character by index-1
-			int postion;
-			if( index == 0){
-				postion = file_size - 1;
+	for(int i=0; i<file_size; i++){
+		char current_char = buffer[i];
+		char next_char = buffer[i+1];
+		FILE* bucket;
+		if (next_char != '\0' && (int)current_char != delimiter){
+			if( current_char > next_char ){
+				// L type
+				continue;
 			} else {
-				postion = index - 1;
+				// S type
+				bucket = buckets[current_char];
 			}
-			fseek(orginal_file, postion, SEEK_SET);
-			char current_char = fgetc(orginal_file);
-			// write the last results into bwt file
-			fputc(current_char, bwt_file);
+		} else {
+			// assume that all the delimiters are S type
+			bucket = buckets[current_char];
+		}
+		fwrite(&i, sizeof(int), 1, bucket);
+	}
+	cout << "Bucket Done!" << endl;
+	
+	
+	/*
+	quick sort
+	sort each S type bucket(0-127)
+	then overwrite each bucket by the indexes of sorted S type characters
+	*/
+	bool* exist_table = (bool*)malloc(sizeof(bool) * file_size);
+	for(int i=0; i<128; i++){
+		// if this bucket stores delimiters, it does not need to be sorted
+		if(i != delimiter){
+			FILE* bucket = buckets[i];
+			// set the file pointer to the end
+			fseek(bucket , 0 , SEEK_END);
+			// get the file size
+			long bucket_file_size = ftell(bucket);
+			// reset file pointer
+			rewind(bucket);
+			
+			// if this bucket is empty, it does not need to be sorted
+			if(bucket_file_size){
+				// malloc an array to read the index in buckets
+				int number_of_indexes = bucket_file_size / sizeof(int);
+				int* index_array = (int*)malloc(sizeof(int) * number_of_indexes);
+				fread(index_array, sizeof(int), number_of_indexes, bucket);
+				
+				// malloc an array to store suffix structs
+				struct Suffix* suffixes = (struct Suffix*)malloc(sizeof(struct Suffix) * number_of_indexes);
+				for (int j=0; j<number_of_indexes; j++) {
+					suffixes[j].str = &buffer[index_array[j]];
+					suffixes[j].postion = index_array[j];
+					cout << suffixes[j].str << endl;
+				}
+				
+				cout << "+++++++++++++++++++++++++++++++++++++++++++" << endl;
+				
+				// sort these suffixes by quick sort
+				QuickSort(suffixes, number_of_indexes, delimiter);
+				
+				// overwrite buckets
+				for (int j=0; j<number_of_indexes; j++) {
+					cout << suffixes[j].str << endl;
+					index_array[i] = suffixes[i].postion;
+					exist_table[suffixes[i].postion] = true;
+				}
+				fseek(bucket, 0, SEEK_SET);
+				fwrite(index_array, sizeof(int), number_of_indexes, bucket);
+				
+				cout << "------------------------------------------" << endl;
+				free(index_array);
+				free(suffixes);
+			}
 		}
 	}
-	
-	fclose(orginal_file);
-	fclose(bwt_file);
-}
+	cout << "Quick Sort Done!" << endl;
 
+	
+	
+	
+	
+	for(int i=0; i<256; i++){
+		// close file
+		fclose(buckets[i]);
+		// delete file
+		char bucket_id[4] = {0};
+		sprintf(bucket_id, "%d", i);
+		char bucket_file_path[MAX_PATH_LENGTH] = {0}; 
+		strcpy(bucket_file_path, temp_folder_name);
+		strcat(bucket_file_path, "/");
+		strcat(bucket_file_path, bucket_id);
+		remove(bucket_file_path);
+	}
+	free(buckets);
+	free(buffer);
+}
