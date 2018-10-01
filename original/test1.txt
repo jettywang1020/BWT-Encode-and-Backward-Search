@@ -1,1 +1,1 @@
-first$second$third$forth$first$second$third$forth$first$
+first$second$third$forth$

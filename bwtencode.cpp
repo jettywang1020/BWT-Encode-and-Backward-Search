@@ -1,9 +1,10 @@
 #include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 using namespace std;
 
 #define MAX_PATH_LENGTH 256
-#define MAX_FILENAME_LENGTH 128
-#define BUFFER_SIZE 128
 
 struct Suffix {
 	char *str;
@@ -55,6 +56,34 @@ void QuickSort(struct Suffix *suffixes, int len, int delimter)
 	QuickSort(suffixes + pvt, len - pvt, delimter);
 }
 
+
+int BinarySearch(int arr[], int l, int r, int x) 
+{ 
+	if (r >= l) 
+	{ 
+		int mid = l + (r - l)/2; 
+
+		// If the element is present at the middle 
+		// itself 
+		if (arr[mid] == x) 
+			return mid; 
+
+		// If element is smaller than mid, then 
+		// it can only be present in left subarray 
+		if (arr[mid] > x) 
+			return BinarySearch(arr, l, mid-1, x); 
+
+		// Else the element can only be present 
+		// in right subarray 
+		return BinarySearch(arr, mid+1, r, x); 
+	} 
+
+	// We reach here when element is not 
+	// present in array 
+	return -1; 
+} 
+
+
 int main(int argc, char *argv[]) {
 	// read arguments
 	int delimiter;
@@ -67,12 +96,13 @@ int main(int argc, char *argv[]) {
 	const char* original_file_name = argv[3];
 	const char* bwt_file_name = argv[4];
 	
-	/* 
+	
+	/*********************************************************************************************
 	read original file into a dynamic size buffer
 	this buffer costs 50MB memory at most and 50MB is much smaller than 2^32-1
 	so we could convert the long type file size to int size safely
 	and this buffer won't be free until the end of this program
-	*/
+	*********************************************************************************************/
 	FILE* original_file = fopen(original_file_name, "r");
 	// set the file pointer to the end
 	fseek(original_file , 0 , SEEK_END);
@@ -91,16 +121,18 @@ int main(int argc, char *argv[]) {
 	// read file and the reult is the number of chars
 	fread(buffer, 1, file_size, original_file); 
 	fclose(original_file);
+	char last_char = buffer[file_size-1];
 	cout << "Read File Done!" << endl;
 	
 	
-	/*
+	/*********************************************************************************************
 	bucket sort
-	create 128 buckets for S type characters and another 128 buckets for L type characters
-	assign the index of each character to different buckets according ascii value
-	*/
-	FILE** buckets = (FILE**)malloc(sizeof(FILE*) * 256);
-	for(int i=0; i<256; i++){
+	create 128 buckets(0-127) for 128 characters
+	for instance: the ascii value of character A is 65, then file 65 is the bucket for A.
+	*********************************************************************************************/
+	FILE** buckets = (FILE**)malloc(sizeof(FILE*) * 128);
+	for(int i=0; i<128; i++){
+		// construct bucket file path
 		char bucket_id[4] = {0};
 		sprintf(bucket_id, "%d", i);
 		char bucket_file_path[MAX_PATH_LENGTH] = {0}; 
@@ -109,86 +141,103 @@ int main(int argc, char *argv[]) {
 		strcat(bucket_file_path, bucket_id);
 		buckets[i] = fopen(bucket_file_path, "a+b");
 	}
+	// assigne each index to related buckets
 	for(int i=0; i<file_size; i++){
-		char current_char = buffer[i];
-		char next_char = buffer[i+1];
-		FILE* bucket;
-		if (next_char != '\0' && (int)current_char != delimiter){
-			if( current_char > next_char ){
-				// L type
-				continue;
-			} else {
-				// S type
-				bucket = buckets[current_char];
-			}
-		} else {
-			// assume that all the delimiters are S type
-			bucket = buckets[current_char];
-		}
+		int this_char = buffer[i];
+		FILE* bucket = buckets[this_char];
 		fwrite(&i, sizeof(int), 1, bucket);
 	}
 	cout << "Bucket Done!" << endl;
 	
 	
-	/*
-	quick sort
-	sort each S type bucket(0-127)
-	then overwrite each bucket by the indexes of sorted S type characters
-	*/
-	bool* exist_table = (bool*)malloc(sizeof(bool) * file_size);
+	
+	/*********************************************************************************************
+	sort each bucket by quick sort
+	then write bwt file
+	*********************************************************************************************/
+	// open bwt file  
+	FILE* bwt_file = fopen(bwt_file_name, "w");
+	// position file path
+	char aux_file_path[MAX_PATH_LENGTH] = {0};
+	strcpy(aux_file_path, bwt_file_name);
+	strcat(aux_file_path, ".aux");
+	// open position file 
+	FILE* aux_file = fopen(aux_file_path, "wb");
+	
+	FILE* delimiter_file = buckets[delimiter];
+	// set the file pointer to the end
+	fseek(delimiter_file , 0 , SEEK_END);
+	// get the file size
+	long delimiter_file_size = ftell(delimiter_file);
+	// reset file pointer
+	rewind(delimiter_file);
+	// malloc an array to read the index in buckets
+	int number_of_delimiters = delimiter_file_size / sizeof(int);
+	int* delimiter_array = (int*)malloc(sizeof(int) * number_of_delimiters);
+	fread(delimiter_array, sizeof(int), number_of_delimiters, delimiter_file);
+	
 	for(int i=0; i<128; i++){
-		// if this bucket stores delimiters, it does not need to be sorted
-		if(i != delimiter){
-			FILE* bucket = buckets[i];
-			// set the file pointer to the end
-			fseek(bucket , 0 , SEEK_END);
-			// get the file size
-			long bucket_file_size = ftell(bucket);
-			// reset file pointer
-			rewind(bucket);
+		cout << "Sorting character " << (char)i << endl;
+		FILE* bucket = buckets[i];
+		// set the file pointer to the end
+		fseek(bucket , 0 , SEEK_END);
+		// get the file size
+		long bucket_file_size = ftell(bucket);
+		// reset file pointer
+		rewind(bucket);
+		
+		// if this bucket is empty, it does not need to be sorted 
+		if(bucket_file_size){
+			// malloc an array to read the index in buckets
+			int number_of_indexes = bucket_file_size / sizeof(int);
+			int* index_array = (int*)malloc(sizeof(int) * number_of_indexes);
+			fread(index_array, sizeof(int), number_of_indexes, bucket);
 			
-			// if this bucket is empty, it does not need to be sorted
-			if(bucket_file_size){
-				// malloc an array to read the index in buckets
-				int number_of_indexes = bucket_file_size / sizeof(int);
-				int* index_array = (int*)malloc(sizeof(int) * number_of_indexes);
-				fread(index_array, sizeof(int), number_of_indexes, bucket);
-				
-				// malloc an array to store suffix structs
-				struct Suffix* suffixes = (struct Suffix*)malloc(sizeof(struct Suffix) * number_of_indexes);
-				for (int j=0; j<number_of_indexes; j++) {
-					suffixes[j].str = &buffer[index_array[j]];
-					suffixes[j].postion = index_array[j];
-					cout << suffixes[j].str << endl;
-				}
-				
-				cout << "+++++++++++++++++++++++++++++++++++++++++++" << endl;
-				
+			// malloc an array to store suffix structs
+			struct Suffix* suffixes = (struct Suffix*)malloc(sizeof(struct Suffix) * number_of_indexes);
+			for (int j=0; j<number_of_indexes; j++) {
+				suffixes[j].str = &buffer[index_array[j]];
+				suffixes[j].postion = index_array[j];
+			}
+			
+			// we dont need to sort delimiter
+			if(i != delimiter){
 				// sort these suffixes by quick sort
 				QuickSort(suffixes, number_of_indexes, delimiter);
-				
-				// overwrite buckets
-				for (int j=0; j<number_of_indexes; j++) {
-					cout << suffixes[j].str << endl;
-					index_array[i] = suffixes[i].postion;
-					exist_table[suffixes[i].postion] = true;
-				}
-				fseek(bucket, 0, SEEK_SET);
-				fwrite(index_array, sizeof(int), number_of_indexes, bucket);
-				
-				cout << "------------------------------------------" << endl;
-				free(index_array);
-				free(suffixes);
 			}
+			
+			//write bwt file
+			for (int j=0; j<number_of_indexes; j++) {
+				int this_position;
+				if(suffixes[j].postion == 0){
+					this_position = file_size - 1;
+				} else {
+					this_position = suffixes[j].postion - 1;
+				}
+				char this_char = buffer[this_position];
+				fwrite(&this_char, sizeof(char), 1, bwt_file);
+				
+				if((int)this_char == delimiter){
+					int delimiter_position = BinarySearch(delimiter_array, 0, number_of_delimiters-1, this_position); 
+					fwrite(&delimiter_position, sizeof(int), 1, aux_file);
+				}
+			}
+			
+			// free struct array and index array
+			free(suffixes);
+			free(index_array);
 		}
 	}
-	cout << "Quick Sort Done!" << endl;
-
+	cout << "Bwt File Done!" << endl;
 	
 	
-	
-	
-	for(int i=0; i<256; i++){
+	/*********************************************************************************************
+	free memory and delete files
+	*********************************************************************************************/
+	free(delimiter_array);
+	fclose(bwt_file);
+	fclose(aux_file);
+	for(int i=0; i<128; i++){
 		// close file
 		fclose(buckets[i]);
 		// delete file

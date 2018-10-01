@@ -94,6 +94,8 @@ int main(int argc, char *argv[]) {
 	}
 	
 
+
+
 	if(strcmp("-m", model) == 0){
 		int index = strlen(pattern) - 1;
 		int current_char = pattern[index];
@@ -108,6 +110,10 @@ int main(int argc, char *argv[]) {
 		}
 		cout << last - first + 1 << endl;
 	}
+	
+	
+	
+	
 	if(strcmp("-n", model) == 0){
 		int index = strlen(pattern) - 1;
 		int current_char = pattern[index];
@@ -147,6 +153,10 @@ int main(int argc, char *argv[]) {
 			fclose(bwt_file);
 		}
 	}
+	
+	
+	
+	
 	if(strcmp("-a", model) == 0){
 		int index = strlen(pattern) - 1;
 		int current_char = pattern[index];
@@ -164,17 +174,17 @@ int main(int argc, char *argv[]) {
 		} else if( last - first == 0 ){
 			cout << 1 << endl;
 		} else {
-			char postion_file_path[MAX_PATH_LENGTH] = {0};
-			strcpy(postion_file_path, temp_folder_name);
-			strcat(postion_file_path, "/");
-			strcat(postion_file_path, "postion.aux ");
-			FILE* postion_file = fopen(postion_file_path, "rb");
-			fseek(postion_file , 0 , SEEK_END);
+			// position file path
+			char aux_file_path[MAX_PATH_LENGTH] = {0};
+			strcpy(aux_file_path, bwt_file_name);
+			strcat(aux_file_path, ".aux");
+			FILE* aux_file = fopen(aux_file_path, "rb");
+			fseek(aux_file , 0 , SEEK_END);
 			// get the file size
-			long file_size = ftell(postion_file);
+			long file_size = ftell(aux_file);
 			int no_of_delimiter = file_size / sizeof(int);
 			// reset file pointer
-			rewind(postion_file);
+			rewind(aux_file);
 			FILE* bwt_file = fopen(bwt_file_name, "r");
 			
 			set<int> delimiters; 
@@ -188,8 +198,8 @@ int main(int argc, char *argv[]) {
 					if(this_char == delimiter){
 						position = occ(this_char, position - 1, occurance, bwt_file_name) + 1;
 						int index_of_delimiter;
-						fseek(postion_file , (position - 1) * sizeof(int), SEEK_SET);
-						fread(&index_of_delimiter, sizeof(int), 1, postion_file);
+						fseek(aux_file , (position - 1) * sizeof(int), SEEK_SET);
+						fread(&index_of_delimiter, sizeof(int), 1, aux_file);
 						
 						if ( index_of_delimiter == no_of_delimiter ){
 							delimiters.insert(1); 
@@ -208,10 +218,13 @@ int main(int argc, char *argv[]) {
 			{ 
 				cout << *itr << endl;
 			}
-			fclose(postion_file);
+			fclose(aux_file);
 			fclose(bwt_file);
 		}
 	}
+	
+	
+	
 	if(strcmp("-i", model) == 0){
 		stringstream ss(pattern);
 		string start_string;
@@ -225,17 +238,6 @@ int main(int argc, char *argv[]) {
 		int end = 0;
 		send >> end;
 		
-		char postion_file_path[MAX_PATH_LENGTH] = {0};
-		strcpy(postion_file_path, temp_folder_name);
-		strcat(postion_file_path, "/");
-		strcat(postion_file_path, "postion.aux ");
-		FILE* postion_file = fopen(postion_file_path, "rb");
-		fseek(postion_file , 0 , SEEK_END);
-		// get the file size
-		long file_size = ftell(postion_file);
-		int no_of_delimiter = file_size / sizeof(int);
-		// reset file pointer
-		rewind(postion_file);
 		FILE* bwt_file = fopen(bwt_file_name, "r");
 		
 		for (int i = start; i <= end; i++) {
@@ -260,7 +262,6 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		
-		fclose(postion_file);
 		fclose(bwt_file);
 	}
 	

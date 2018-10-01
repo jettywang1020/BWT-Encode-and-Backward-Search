@@ -2,6 +2,8 @@
 #include <map>
 #include <sstream>
 #include <array>
+#include <stdio.h>
+
 
 using namespace std;
 
@@ -60,24 +62,41 @@ void QuickSort(struct Suffix *suffixes, int len, int delimter)
 
 int main () 
 { 
-    char str[] = "ab$acb$abb$";
+//    char str[] = "ab$acb$abb$";
+//	
+//	char *buffer = str;
+//
+//	int delimiter = 36;
+//
+//	struct Suffix* suffixes = (struct Suffix*)malloc(sizeof(struct Suffix)*11);
+//	
+//	
+//	for (int i=0; i<11; i++) {
+//		suffixes[i].str = &buffer[i];
+//		suffixes[i].postion = i;
+//	}
+//
+//	QuickSort(suffixes, 11, delimiter);
+//	for (int i=0; i<11; i++) {
+//		cout << suffixes[i].str << endl;
+//	}
 	
-	char *buffer = str;
-
-	int delimiter = 36;
-
-	struct Suffix* suffixes = (struct Suffix*)malloc(sizeof(struct Suffix)*11);
+	FILE* test = fopen("test.txt", "a+");
+//	char a = 'a';
+//	fwrite(&a, sizeof(char), 1, test);
 	
-	
-	for (int i=0; i<11; i++) {
-		suffixes[i].str = &buffer[i];
-		suffixes[i].postion = i;
-	}
+//	fseek(test, 2, SEEK_CUR);
+//	char b = 'c';
+//	fwrite(&b, sizeof(char), 1, test);
+	fseek(test , 0 , SEEK_END);
+	// get the file size
+	long file_size = ftell(test);
+	// reset file pointer
+	rewind(test);
+	cout << file_size << endl;
+	char b = 'c';
+	fwrite(&b, sizeof(char), 1, test);
 
-	QuickSort(suffixes, 11, delimiter);
-	for (int i=0; i<11; i++) {
-		cout << suffixes[i].str << endl;
-	}
 	
 	return 0; 
 } 
