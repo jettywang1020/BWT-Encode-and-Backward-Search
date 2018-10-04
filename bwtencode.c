@@ -1,8 +1,6 @@
-#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-using namespace std;
 
 #define MAX_PATH_LENGTH 256
 
@@ -21,7 +19,7 @@ void Swap(struct Suffix *a, struct Suffix *b)
 }
 
 // compare function.
-bool compare(struct Suffix *a, struct Suffix *b, int delimter){
+int compare(struct Suffix *a, struct Suffix *b, int delimter){
 	int i = 0;
 	while (a->str[i] == b->str[i]) {
 		int ascii = a->str[i];
@@ -114,14 +112,12 @@ int main(int argc, char *argv[]) {
 	buffer[file_size] = '\0';
 	// allocate memory failed
 	if (buffer == NULL) {
-		cout << "Memory error" << endl;
 		exit(0);
 	}
 	// read file and the reult is the number of chars
 	fread(buffer, 1, file_size, original_file); 
 	fclose(original_file);
 	char last_char = buffer[file_size-1];
-	//cout << "Read File Done!" << endl;
 	
 	
 	/*********************************************************************************************
@@ -146,7 +142,6 @@ int main(int argc, char *argv[]) {
 		FILE* bucket = buckets[this_char];
 		fwrite(&i, sizeof(int), 1, bucket);
 	}
-	//cout << "Bucket Done!" << endl;
 	
 	
 	
@@ -226,7 +221,6 @@ int main(int argc, char *argv[]) {
 			free(index_array);
 		}
 	}
-	//cout << "Bwt File Done!" << endl;
 	
 	
 	/*********************************************************************************************

@@ -1,4 +1,3 @@
 main:
-	g++ bwtencode.cpp -o bwtencode
+	gcc bwtencode.c -o bwtencode
 	g++ bwtsearch.cpp -o bwtsearch
-	g++ demo.cpp -o demo

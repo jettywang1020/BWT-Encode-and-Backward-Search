@@ -185,7 +185,6 @@ int main(int argc, char *argv[]) {
 			rewind(aux_file);
 			// malloc an array to store the index of delimters
 			int no_of_delimiter = aux_file_size / sizeof(int);
-			//int* delimiter_array = (int*)malloc(sizeof(int) * no_of_delimiter);
 			int* delimiter_array = new int [no_of_delimiter];
 			fread(delimiter_array, sizeof(int), no_of_delimiter, aux_file);
 			fclose(aux_file);
