@@ -1,13 +1,14 @@
 #include <iostream>
+#include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <set>
 #include <sstream>
 using namespace std;
 
 #define MAX_PATH_LENGTH 256
-#define BUFFER_SIZE 1024*4
+#define BUFFER_SIZE 1024 * 3
 
 // occ function
 int occ(int current_char, int pre, int *occurance[127], const char* bwt_file_name){
@@ -39,6 +40,10 @@ int occ(int current_char, int pre, int *occurance[127], const char* bwt_file_nam
 	return result;
 }
 
+int compare (const void * a, const void * b) {
+	return ( *(int*)a - *(int*)b );
+}
+
 int main(int argc, char *argv[]) {
 	int delimiter;
 	if(strcmp("\\n", argv[1]) == 0){
@@ -66,31 +71,71 @@ int main(int argc, char *argv[]) {
 	for( int i=0; i<row_size; i++ ) {
 		occurance[i] = new int [127];
 	}
-	
-	char bwt_text[BUFFER_SIZE] = {0};
-	int size = 0;
-	int itertaion = 0;
-	while((size = fread(bwt_text, sizeof(char), BUFFER_SIZE, bwt_file)) > 0){
-		for (int i = 0 ; i < size; i++) {
-			int ascii = bwt_text[i];
-			occurance[itertaion][ascii]++;
-		}
-		itertaion ++ ;
-	}
-	
-	// sum of occurances of every char
-	int sum_of_occurance[127] = {0};
-	for (int i=0; i<row_size; i++) {
-		for (int j=0; j<127; j++) {
-			sum_of_occurance[j] = sum_of_occurance[j] + occurance[i][j];
-		}
-	}
-	
-	// construct c table
+	// c table
 	int c_table[127] = {0};
-	for (int i=1; i<127; i++) {
-		c_table[i] = sum_of_occurance[i-1] + c_table[i-1];
+	
+	
+	// occ file path
+	char occ_file_path[MAX_PATH_LENGTH] = {0};
+	strcpy(occ_file_path, bwt_file_name);
+	strcat(occ_file_path, ".occ");
+	// c table file path
+	char ctable_file_path[MAX_PATH_LENGTH] = {0};
+	strcpy(ctable_file_path, bwt_file_name);
+	strcat(ctable_file_path, ".ctable");
+	
+	// if occ file and c table file exist
+	if( access( occ_file_path, F_OK ) != -1  && access( ctable_file_path, F_OK ) != -1) {
+		FILE* occ_file = fopen(occ_file_path, "rb");
+		FILE* ctable_file = fopen(ctable_file_path, "rb");
+		
+		// read occ file
+		for (int i=0; i<row_size; i++) {
+			fread(occurance[i], sizeof(int), 128, occ_file);
+		}
+		
+		// read c table file
+		fread(c_table, sizeof(int), 128, ctable_file);
+		
+		fclose(occ_file);
+		fclose(ctable_file);
+	} else {
+		FILE* occ_file = fopen(occ_file_path, "wb");
+		FILE* ctable_file = fopen(ctable_file_path, "wb");
+		
+		// read bwt file and construct occ table
+		char bwt_text[BUFFER_SIZE] = {0};
+		int size = 0;
+		int itertaion = 0;
+		while((size = fread(bwt_text, sizeof(char), BUFFER_SIZE, bwt_file)) > 0){
+			for (int i = 0 ; i < size; i++) {
+				int ascii = bwt_text[i];
+				occurance[itertaion][ascii]++;
+			}
+			itertaion ++ ;
+		}
+		
+		// sum of occurances of every char
+		int sum_of_occurance[127] = {0};
+		for (int i=0; i<row_size; i++) {
+			// write occ file
+			fwrite(occurance[i], sizeof(int), 128, occ_file);
+			for (int j=0; j<127; j++) {
+				sum_of_occurance[j] = sum_of_occurance[j] + occurance[i][j];
+			}
+		}
+		
+		// compute c table
+		for (int i=1; i<127; i++) {
+			c_table[i] = sum_of_occurance[i-1] + c_table[i-1];
+		}
+		// write c table file
+		fwrite(c_table, sizeof(int), 128, ctable_file);
+		
+		fclose(occ_file);
+		fclose(ctable_file);
 	}
+	
 
 	/*********************************************************************************************
 	-m backword search
@@ -130,7 +175,7 @@ int main(int argc, char *argv[]) {
 		} else if( last - first == 0 ){
 			cout << 1 << endl;
 		} else {
-			set<int> delimiters; 
+			int* delimiters = new int[last - first + 1];
 			for(int i=first; i<=last; i++){
 				int position = i;
 				int j = 0;
@@ -141,7 +186,7 @@ int main(int argc, char *argv[]) {
 					int this_char = temp;
 					// if this character is delimiter, stop, otherwise, find next character
 					if(this_char == delimiter){
-						delimiters.insert(position); 
+						delimiters[i-first] = position + 1; 
 						break;
 					} else {
 						position = c_table[this_char] + occ(this_char, position - 1, occurance, bwt_file_name) + 1;
@@ -149,7 +194,20 @@ int main(int argc, char *argv[]) {
 					j++;
 				}
 			}			
-			cout << delimiters.size() << endl;
+
+			// sort the index of demiliters and remove reduance
+			qsort(delimiters, last - first + 1, sizeof(int), compare);
+			int previous = 0;
+			int counter = 0;
+			for(int i=0; i<last - first + 1; i++){
+				if(delimiters[i] != previous){
+					previous = delimiters[i];
+					counter++;
+				}
+			}
+			cout << counter << endl;
+			
+			delete[] delimiters;
 		}
 	}
 	
@@ -169,9 +227,7 @@ int main(int argc, char *argv[]) {
 			last = c_table[current_char] + occ(current_char, last, occurance, bwt_file_name);
 		}
 		if( last - first + 1 == 0 ){
-			cout << 0 << endl;
-		} else if( last - first == 0 ){
-			cout << 1 << endl;
+			exit(0);
 		} else {
 			// aux position file path
 			char aux_file_path[MAX_PATH_LENGTH] = {0};
@@ -185,11 +241,8 @@ int main(int argc, char *argv[]) {
 			rewind(aux_file);
 			// malloc an array to store the index of delimters
 			int no_of_delimiter = aux_file_size / sizeof(int);
-			int* delimiter_array = new int [no_of_delimiter];
-			fread(delimiter_array, sizeof(int), no_of_delimiter, aux_file);
-			fclose(aux_file);
 			
-			set<int> delimiters; 
+			int* delimiters = new int[last - first + 1];
 			for(int i=first; i<=last; i++){
 				int position = i;
 				int j = 0;
@@ -202,12 +255,14 @@ int main(int argc, char *argv[]) {
 					if(this_char == delimiter){
 						position = occ(this_char, position - 1, occurance, bwt_file_name) + 1;
 						// get the index of this delimiter and insert this postion into set
-						int index_of_delimiter = delimiter_array[position - 1];						
+						int index_of_delimiter;
+						fseek(aux_file, sizeof(int) * (position - 1), SEEK_CUR);
+						fread(&index_of_delimiter, sizeof(int), 1, aux_file);
 						index_of_delimiter ++;
 						if ( index_of_delimiter == no_of_delimiter ){
-							delimiters.insert(1); 
+							delimiters[i-first] =  1; 
 						} else {
-							delimiters.insert(index_of_delimiter + 1); 
+							delimiters[i-first] =  index_of_delimiter + 1; 
 						}
 						break;
 					} else {
@@ -216,12 +271,16 @@ int main(int argc, char *argv[]) {
 					j++;
 				}
 			}
-			delete[] delimiter_array;
+			fclose(aux_file);
 						
-			set <int> :: iterator itr; 
-			for (itr = delimiters.begin(); itr != delimiters.end(); ++itr) 
-			{ 
-				cout << *itr << endl;
+			// sort the index of demiliters and remove reduance
+			qsort(delimiters, last - first + 1, sizeof(int), compare);
+			int previous = 0;
+			for(int i=0; i<last - first + 1; i++){
+				if(delimiters[i] != previous){
+					previous = delimiters[i];
+					cout << delimiters[i] << endl;
+				}
 			}
 		}
 	}

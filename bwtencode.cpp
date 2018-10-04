@@ -236,9 +236,9 @@ int main(int argc, char *argv[]) {
 	fclose(bwt_file);
 	fclose(aux_file);
 	for(int i=0; i<128; i++){
-		// close file
+		// close files
 		fclose(buckets[i]);
-		// delete file
+		// delete files
 		char bucket_id[4] = {0};
 		sprintf(bucket_id, "%d", i);
 		char bucket_file_path[MAX_PATH_LENGTH] = {0}; 
