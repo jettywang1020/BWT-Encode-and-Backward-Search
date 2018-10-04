@@ -1,3 +1,3 @@
 main:
-	gcc bwtencode.c -o bwtencode
+	g++ bwtencode.cpp -o bwtencode
 	g++ bwtsearch.cpp -o bwtsearch
