@@ -6,11 +6,13 @@ using namespace std;
 
 #define MAX_PATH_LENGTH 256
 
+// every suffix is a struct which contains a positon and a pointer pointing to character of this position
 struct Suffix {
 	char *str;
 	int postion;
 };
 
+// swap two suffic struct 
 void Swap(struct Suffix *a, struct Suffix *b)
 {
 	struct Suffix temp = *a;
@@ -18,21 +20,25 @@ void Swap(struct Suffix *a, struct Suffix *b)
 	*b = temp;
 }
 
+// compare function.
 bool compare(struct Suffix *a, struct Suffix *b, int delimter){
 	int i = 0;
 	while (a->str[i] == b->str[i]) {
 		int ascii = a->str[i];
+		// if both characters are delimiters, compare their postions
 		if(ascii == delimter){
 			return (a->postion < b->postion);
 		}
+		// otherwise, compare next characters
 		i++;
 	}
 	return (a->str[i] < b->str[i]);
 }
 
+// quick sort a struct array
 void QuickSort(struct Suffix *suffixes, int len, int delimter)
 {
-	int pvt=0;
+	int pivot = 0;
 
 	if (len <= 1)
 		return;
@@ -43,43 +49,36 @@ void QuickSort(struct Suffix *suffixes, int len, int delimter)
 	// reset the pivot index to zero, then scan
 	for (int i=0; i<len-1; i++)
 	{
-		if (compare(&suffixes[i], &suffixes[len-1], delimter)){
-			Swap(&suffixes[i], &suffixes[pvt++]);
+		if (compare(&suffixes[i], &suffixes[len - 1], delimter)){
+			Swap(&suffixes[i], &suffixes[pivot++]);
 		}
 	}
 
 	// move the pivot value into its place
-	Swap(&suffixes[pvt], &suffixes[len-1]);
+	Swap(&suffixes[pivot], &suffixes[len - 1]);
 
 	// and invoke on the subsequences. does NOT include the pivot-slot
-	QuickSort(suffixes, pvt++, delimter);
-	QuickSort(suffixes + pvt, len - pvt, delimter);
+	QuickSort(suffixes, pivot++, delimter);
+	QuickSort(suffixes + pivot, len - pivot, delimter);
 }
 
-
-int BinarySearch(int arr[], int l, int r, int x) 
+// binary search for helping write auxiliary postion file
+int BinarySearch(int array[], int left, int right, int target) 
 { 
-	if (r >= l) 
+	if (right >= left) 
 	{ 
-		int mid = l + (r - l)/2; 
-
-		// If the element is present at the middle 
-		// itself 
-		if (arr[mid] == x) 
+		int mid = left + (right - left)/2; 
+		// if the target element is at the middle itself 
+		if (array[mid] == target) 
 			return mid; 
-
-		// If element is smaller than mid, then 
-		// it can only be present in left subarray 
-		if (arr[mid] > x) 
-			return BinarySearch(arr, l, mid-1, x); 
-
-		// Else the element can only be present 
-		// in right subarray 
-		return BinarySearch(arr, mid+1, r, x); 
+		// if target element is smaller than mid, then it can only be in left subarray 
+		if (array[mid] > target) 
+			return BinarySearch(array, left, mid-1, target); 
+		// else the target element can only be in right subarray 
+		else
+			return BinarySearch(array, mid+1, right, target); 
 	} 
-
-	// We reach here when element is not 
-	// present in array 
+	// reach here when target element is not in the array 
 	return -1; 
 } 
 
@@ -87,7 +86,7 @@ int BinarySearch(int arr[], int l, int r, int x)
 int main(int argc, char *argv[]) {
 	// read arguments
 	int delimiter;
-	if(strcmp("\n", argv[1]) == 0){
+	if(strcmp("\\n", argv[1]) == 0){
 		delimiter = 10;
 	} else{
 		delimiter = argv[1][0];
@@ -122,7 +121,7 @@ int main(int argc, char *argv[]) {
 	fread(buffer, 1, file_size, original_file); 
 	fclose(original_file);
 	char last_char = buffer[file_size-1];
-	cout << "Read File Done!" << endl;
+	//cout << "Read File Done!" << endl;
 	
 	
 	/*********************************************************************************************
@@ -147,7 +146,7 @@ int main(int argc, char *argv[]) {
 		FILE* bucket = buckets[this_char];
 		fwrite(&i, sizeof(int), 1, bucket);
 	}
-	cout << "Bucket Done!" << endl;
+	//cout << "Bucket Done!" << endl;
 	
 	
 	
@@ -177,7 +176,6 @@ int main(int argc, char *argv[]) {
 	fread(delimiter_array, sizeof(int), number_of_delimiters, delimiter_file);
 	
 	for(int i=0; i<128; i++){
-		cout << "Sorting character " << (char)i << endl;
 		FILE* bucket = buckets[i];
 		// set the file pointer to the end
 		fseek(bucket , 0 , SEEK_END);
@@ -216,7 +214,7 @@ int main(int argc, char *argv[]) {
 				}
 				char this_char = buffer[this_position];
 				fwrite(&this_char, sizeof(char), 1, bwt_file);
-				
+				// write auxiliary postion file
 				if((int)this_char == delimiter){
 					int delimiter_position = BinarySearch(delimiter_array, 0, number_of_delimiters-1, this_position); 
 					fwrite(&delimiter_position, sizeof(int), 1, aux_file);
@@ -228,7 +226,7 @@ int main(int argc, char *argv[]) {
 			free(index_array);
 		}
 	}
-	cout << "Bwt File Done!" << endl;
+	//cout << "Bwt File Done!" << endl;
 	
 	
 	/*********************************************************************************************
