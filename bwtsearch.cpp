@@ -26,7 +26,7 @@ int occ(int current_char, int pre, int **occurance, const char* bwt_file_name){
 	
 	// conut rest number of this from bwt file
 	FILE* bwt_file = fopen(bwt_file_name, "r");
-	fseek(bwt_file , start , SEEK_CUR);
+	fseek(bwt_file , start , SEEK_SET);
 	int i = 0;
 	while (i < offset) {
 		int this_char = fgetc(bwt_file);
@@ -35,7 +35,6 @@ int occ(int current_char, int pre, int **occurance, const char* bwt_file_name){
 		}
 		i++;
 	}
-	fseek(bwt_file , 0, SEEK_SET);
 	fclose(bwt_file);
 	
 	return result;
@@ -182,9 +181,8 @@ int main(int argc, char *argv[]) {
 				int j = 0;
 				// do backwark decode and the max length of each record is 5000
 				while(j < 5000){
-					fseek(bwt_file , position - 1, SEEK_CUR);
+					fseek(bwt_file , position - 1, SEEK_SET);
 					char temp = fgetc(bwt_file);
-					fseek(bwt_file , 0, SEEK_SET);
 					int this_char = temp;
 					// if this character is delimiter, stop, otherwise, find next character
 					if(this_char == delimiter){
@@ -250,18 +248,16 @@ int main(int argc, char *argv[]) {
 				int j = 0;
 				// do backwark decode and the max length of each record is 5000
 				while(j < 5000){
-					fseek(bwt_file , position - 1, SEEK_CUR);
+					fseek(bwt_file , position - 1, SEEK_SET);
 					char temp = fgetc(bwt_file);
-					fseek(bwt_file , 0, SEEK_SET);
 					int this_char = temp;
 					// if this character is delimiter, stop, otherwise, find next character
 					if(this_char == delimiter){
 						position = occ(this_char, position - 1, occurance, bwt_file_name) + 1;
 						// get the index of this delimiter and insert this postion into set
 						int index_of_delimiter;
-						fseek(aux_file, sizeof(int) * (position - 1), SEEK_CUR);
+						fseek(aux_file, sizeof(int) * (position - 1), SEEK_SET);
 						fread(&index_of_delimiter, sizeof(int), 1, aux_file);
-						fseek(aux_file, 0, SEEK_SET);
 						index_of_delimiter ++;
 						if ( index_of_delimiter == no_of_delimiter ){
 							delimiters[i-first] =  1; 
@@ -314,9 +310,8 @@ int main(int argc, char *argv[]) {
 			int j = 0;
 			// do backwark decode
 			while(j < 5000){
-				fseek(bwt_file , position - 1, SEEK_CUR);
+				fseek(bwt_file , position - 1, SEEK_SET);
 				char temp = fgetc(bwt_file);
-				fseek(bwt_file , 0, SEEK_SET);
 				int this_char = temp;
 				// if this character is delimiter, stop, otherwise, find next character
 				if(this_char == delimiter){
