@@ -26,7 +26,7 @@ int occ(int current_char, int pre, int **occurance, const char* bwt_file_name){
 	
 	// conut rest number of this from bwt file
 	FILE* bwt_file = fopen(bwt_file_name, "r");
-	fseek(bwt_file , start , SEEK_SET);
+	fseek(bwt_file , start , SEEK_CUR);
 	int i = 0;
 	while (i < offset) {
 		int this_char = fgetc(bwt_file);
@@ -35,6 +35,7 @@ int occ(int current_char, int pre, int **occurance, const char* bwt_file_name){
 		}
 		i++;
 	}
+	fseek(bwt_file , 0, SEEK_SET);
 	fclose(bwt_file);
 	
 	return result;
@@ -67,7 +68,6 @@ int main(int argc, char *argv[]) {
 	double temp = file_size / (double)(bsize);
 	int row_size = ceil(temp);
 	// occ table
-	//int* occurance[row_size];
 	int** occurance = (int**)malloc(row_size * sizeof(int*)); 
 	for( int i=0; i<row_size; i++ ) {
 		occurance[i] = (int*)malloc(127 * sizeof(int)); 
@@ -92,11 +92,11 @@ int main(int argc, char *argv[]) {
 		
 		// read occ file
 		for (int i=0; i<row_size; i++) {
-			fread(occurance[i], sizeof(int), 128, occ_file);
+			fread(occurance[i], sizeof(int), 127, occ_file);
 		}
 		
 		// read c table file
-		fread(c_table, sizeof(int), 128, ctable_file);
+		fread(c_table, sizeof(int), 127, ctable_file);
 		
 		fclose(occ_file);
 		fclose(ctable_file);
@@ -119,13 +119,11 @@ int main(int argc, char *argv[]) {
 		// write occ file
 		for (int i=0; i<row_size; i++) {
 			for (int j=0; j<127; j++) {
-				if(i==0){
-					occurance[i][j] =  occurance[i][j];
-				} else {
+				if(i != 0){
 					occurance[i][j] =  occurance[i][j] + occurance[i-1][j];
 				}
 			}
-			fwrite(occurance[i], sizeof(int), 128, occ_file);
+			fwrite(occurance[i], sizeof(int), 127, occ_file);
 		}
 		
 		// compute c table
@@ -133,7 +131,7 @@ int main(int argc, char *argv[]) {
 			c_table[i] = occurance[row_size-1][i-1] + c_table[i-1];
 		}
 		// write c table file
-		fwrite(c_table, sizeof(int), 128, ctable_file);
+		fwrite(c_table, sizeof(int), 127, ctable_file);
 		
 		fclose(occ_file);
 		fclose(ctable_file);
@@ -184,8 +182,9 @@ int main(int argc, char *argv[]) {
 				int j = 0;
 				// do backwark decode and the max length of each record is 5000
 				while(j < 5000){
-					fseek(bwt_file , position - 1, SEEK_SET);
+					fseek(bwt_file , position - 1, SEEK_CUR);
 					char temp = fgetc(bwt_file);
+					fseek(bwt_file , 0, SEEK_SET);
 					int this_char = temp;
 					// if this character is delimiter, stop, otherwise, find next character
 					if(this_char == delimiter){
@@ -251,8 +250,9 @@ int main(int argc, char *argv[]) {
 				int j = 0;
 				// do backwark decode and the max length of each record is 5000
 				while(j < 5000){
-					fseek(bwt_file , position - 1, SEEK_SET);
+					fseek(bwt_file , position - 1, SEEK_CUR);
 					char temp = fgetc(bwt_file);
+					fseek(bwt_file , 0, SEEK_SET);
 					int this_char = temp;
 					// if this character is delimiter, stop, otherwise, find next character
 					if(this_char == delimiter){
@@ -314,8 +314,9 @@ int main(int argc, char *argv[]) {
 			int j = 0;
 			// do backwark decode
 			while(j < 5000){
-				fseek(bwt_file , position - 1, SEEK_SET);
+				fseek(bwt_file , position - 1, SEEK_CUR);
 				char temp = fgetc(bwt_file);
+				fseek(bwt_file , 0, SEEK_SET);
 				int this_char = temp;
 				// if this character is delimiter, stop, otherwise, find next character
 				if(this_char == delimiter){
