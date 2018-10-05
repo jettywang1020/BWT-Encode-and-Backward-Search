@@ -17,9 +17,6 @@ int occ(int current_char, int pre, int *occurance[127], const char* bwt_file_nam
 	int rows = floor(temp);
 	
 	// get result from occ table
-//	for(int i=0; i<rows; i++){
-//		result += occurance[i][current_char];
-//	}
 	int result = 0;
 	if(rows != 0){
 		result = occurance[rows-1][current_char];
@@ -72,9 +69,8 @@ int main(int argc, char *argv[]) {
 	// occ table
 	int *occurance[row_size];
 	for( int i=0; i<row_size; i++ ) {
-		occurance[i] = new int [127];
+		occurance[i] = (int*)malloc(127 * sizeof(int)); 
 	}
-	
 	// c table
 	int c_table[127] = {0};
 	
@@ -181,7 +177,7 @@ int main(int argc, char *argv[]) {
 		} else if( last - first == 0 ){
 			cout << 1 << endl;
 		} else {
-			int* delimiters = new int[last - first + 1];
+			int* delimiters = (int*)malloc((last - first + 1) * sizeof(int));
 			for(int i=first; i<=last; i++){
 				int position = i;
 				int j = 0;
@@ -213,7 +209,7 @@ int main(int argc, char *argv[]) {
 			}
 			cout << counter << endl;
 			
-			delete[] delimiters;
+			free(delimiters);
 		}
 	}
 	
@@ -248,7 +244,7 @@ int main(int argc, char *argv[]) {
 			// malloc an array to store the index of delimters
 			int no_of_delimiter = aux_file_size / sizeof(int);
 			
-			int* delimiters = new int[last - first + 1];
+			int* delimiters = (int*)malloc((last - first + 1) * sizeof(int));
 			for(int i=first; i<=last; i++){
 				int position = i;
 				int j = 0;
@@ -289,7 +285,7 @@ int main(int argc, char *argv[]) {
 					cout << delimiters[i] << endl;
 				}
 			}
-			delete[] delimiters;
+			free(delimiters);
 		}
 	}
 	
@@ -311,7 +307,7 @@ int main(int argc, char *argv[]) {
 		send >> end;
 		
 		for (int i = start; i <= end; i++) {
-			char* record = new char[5001];
+			char* record = (char*)malloc(5000 * sizeof(char));
 			int length = 0;
 			int position = c_table[delimiter] + i;
 			int j = 0;
@@ -334,7 +330,7 @@ int main(int argc, char *argv[]) {
 				}
 				j++;
 			}
-			delete[] record;
+			free(record);
 		}
 	}
 	
@@ -342,6 +338,6 @@ int main(int argc, char *argv[]) {
 	fclose(bwt_file);
 	// free memory
 	for( int i=0; i<row_size; i++ ) {
-		delete[] occurance[i];
+		free(occurance[i]);
 	}
 }
