@@ -11,7 +11,7 @@ using namespace std;
 #define BUFFER_SIZE 1024 * 3
 
 // occ function
-int occ(int current_char, int pre, int *occurance[127], const char* bwt_file_name){
+int occ(int current_char, int pre, int **occurance, const char* bwt_file_name){
 	int bsize = BUFFER_SIZE;
 	double temp = pre / (double)(bsize);
 	int rows = floor(temp);
@@ -67,7 +67,8 @@ int main(int argc, char *argv[]) {
 	double temp = file_size / (double)(bsize);
 	int row_size = ceil(temp);
 	// occ table
-	int *occurance[row_size];
+	//int* occurance[row_size];
+	int** occurance = (int**)malloc(row_size * sizeof(int*)); 
 	for( int i=0; i<row_size; i++ ) {
 		occurance[i] = (int*)malloc(127 * sizeof(int)); 
 	}
@@ -340,4 +341,5 @@ int main(int argc, char *argv[]) {
 	for( int i=0; i<row_size; i++ ) {
 		free(occurance[i]);
 	}
+	free(occurance);
 }
