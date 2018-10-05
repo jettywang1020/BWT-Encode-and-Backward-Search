@@ -12,14 +12,17 @@ using namespace std;
 
 // occ function
 int occ(int current_char, int pre, int *occurance[127], const char* bwt_file_name){
-	int result = 0;
 	int bsize = BUFFER_SIZE;
 	double temp = pre / (double)(bsize);
 	int rows = floor(temp);
 	
 	// get result from occ table
-	for(int i=0; i<rows; i++){
-		result += occurance[i][current_char];
+//	for(int i=0; i<rows; i++){
+//		result += occurance[i][current_char];
+//	}
+	int result = 0;
+	if(rows != 0){
+		result = occurance[rows-1][current_char];
 	}
 	int start = bsize * rows;
 	int offset = pre - bsize * rows;
@@ -71,6 +74,7 @@ int main(int argc, char *argv[]) {
 	for( int i=0; i<row_size; i++ ) {
 		occurance[i] = new int [127];
 	}
+	
 	// c table
 	int c_table[127] = {0};
 	
@@ -115,19 +119,21 @@ int main(int argc, char *argv[]) {
 			itertaion ++ ;
 		}
 		
-		// sum of occurances of every char
-		int sum_of_occurance[127] = {0};
+		// write occ file
 		for (int i=0; i<row_size; i++) {
-			// write occ file
-			fwrite(occurance[i], sizeof(int), 128, occ_file);
 			for (int j=0; j<127; j++) {
-				sum_of_occurance[j] = sum_of_occurance[j] + occurance[i][j];
+				if(i==0){
+					occurance[i][j] =  occurance[i][j];
+				} else {
+					occurance[i][j] =  occurance[i][j] + occurance[i-1][j];
+				}
 			}
+			fwrite(occurance[i], sizeof(int), 128, occ_file);
 		}
 		
 		// compute c table
 		for (int i=1; i<127; i++) {
-			c_table[i] = sum_of_occurance[i-1] + c_table[i-1];
+			c_table[i] = occurance[row_size-1][i-1] + c_table[i-1];
 		}
 		// write c table file
 		fwrite(c_table, sizeof(int), 128, ctable_file);
@@ -158,7 +164,7 @@ int main(int argc, char *argv[]) {
 	/*********************************************************************************************
 	-n backword search
 	*********************************************************************************************/
-	if(strcmp("-n", model) == 0){
+	if(strcmp("-n", model) == 0){		
 		int index = strlen(pattern) - 1;
 		int current_char = pattern[index];
 		int first = c_table[current_char] + 1;
@@ -169,7 +175,7 @@ int main(int argc, char *argv[]) {
 			current_char = pattern[index];
 			first = c_table[current_char] + occ(current_char, first - 1, occurance, bwt_file_name) + 1;
 			last = c_table[current_char] + occ(current_char, last, occurance, bwt_file_name);
-		}
+		}		
 		if( last - first + 1 == 0 ){
 			cout << 0 << endl;
 		} else if( last - first == 0 ){
@@ -258,6 +264,7 @@ int main(int argc, char *argv[]) {
 						int index_of_delimiter;
 						fseek(aux_file, sizeof(int) * (position - 1), SEEK_CUR);
 						fread(&index_of_delimiter, sizeof(int), 1, aux_file);
+						fseek(aux_file, 0, SEEK_SET);
 						index_of_delimiter ++;
 						if ( index_of_delimiter == no_of_delimiter ){
 							delimiters[i-first] =  1; 
@@ -282,6 +289,7 @@ int main(int argc, char *argv[]) {
 					cout << delimiters[i] << endl;
 				}
 			}
+			delete[] delimiters;
 		}
 	}
 	
@@ -326,6 +334,7 @@ int main(int argc, char *argv[]) {
 				}
 				j++;
 			}
+			delete[] record;
 		}
 	}
 	
