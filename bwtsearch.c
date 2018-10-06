@@ -74,35 +74,69 @@ int main(int argc, char *argv[]) {
 	// c table
 	int c_table[127] = {0};
 	
-	
-	// occ file path
-	char occ_file_path[MAX_PATH_LENGTH] = {0};
-	strcpy(occ_file_path, bwt_file_name);
-	strcat(occ_file_path, ".occ");
-	// c table file path
-	char ctable_file_path[MAX_PATH_LENGTH] = {0};
-	strcpy(ctable_file_path, bwt_file_name);
-	strcat(ctable_file_path, ".ctable");
-	
-	// if occ file and c table file exist
-	if( access( occ_file_path, F_OK ) != -1  && access( ctable_file_path, F_OK ) != -1) {
-		FILE* occ_file = fopen(occ_file_path, "rb");
-		FILE* ctable_file = fopen(ctable_file_path, "rb");
+	// if bwt file is very small(smaller than 1mb), there is no necessary to write extra fils
+	if(file_size > 1024 * 1024){
+		// occ file path
+		char occ_file_path[MAX_PATH_LENGTH] = {0};
+		strcpy(occ_file_path, bwt_file_name);
+		strcat(occ_file_path, ".occ");
+		// c table file path
+		char ctable_file_path[MAX_PATH_LENGTH] = {0};
+		strcpy(ctable_file_path, bwt_file_name);
+		strcat(ctable_file_path, ".ctable");
 		
-		// read occ file
-		for (i=0; i<row_size; i++) {
-			fread(occurance[i], sizeof(int), 127, occ_file);
+		// if occ file and c table file exist
+		if( access( occ_file_path, F_OK ) != -1  && access( ctable_file_path, F_OK ) != -1) {
+			FILE* occ_file = fopen(occ_file_path, "rb");
+			FILE* ctable_file = fopen(ctable_file_path, "rb");
+			
+			// read occ file
+			for (i=0; i<row_size; i++) {
+				fread(occurance[i], sizeof(int), 127, occ_file);
+			}
+			
+			// read c table file
+			fread(c_table, sizeof(int), 127, ctable_file);
+			
+			fclose(occ_file);
+			fclose(ctable_file);
+		} else {
+			FILE* occ_file = fopen(occ_file_path, "wb");
+			FILE* ctable_file = fopen(ctable_file_path, "wb");
+			
+			// read bwt file and construct occ table
+			char bwt_text[BUFFER_SIZE] = {0};
+			int size = 0;
+			int itertaion = 0;
+			while((size = fread(bwt_text, sizeof(char), BUFFER_SIZE, bwt_file)) > 0){
+				for (i = 0 ; i < size; i++) {
+					int ascii = bwt_text[i];
+					occurance[itertaion][ascii]++;
+				}
+				itertaion ++ ;
+			}
+			
+			// write occ file
+			for (i=0; i<row_size; i++) {
+				for (j=0; j<127; j++) {
+					if(i != 0){
+						occurance[i][j] =  occurance[i][j] + occurance[i-1][j];
+					}
+				}
+				fwrite(occurance[i], sizeof(int), 127, occ_file);
+			}
+			
+			// compute c table
+			for (i=1; i<127; i++) {
+				c_table[i] = occurance[row_size-1][i-1] + c_table[i-1];
+			}
+			// write c table file
+			fwrite(c_table, sizeof(int), 127, ctable_file);
+			
+			fclose(occ_file);
+			fclose(ctable_file);
 		}
-		
-		// read c table file
-		fread(c_table, sizeof(int), 127, ctable_file);
-		
-		fclose(occ_file);
-		fclose(ctable_file);
 	} else {
-		FILE* occ_file = fopen(occ_file_path, "wb");
-		FILE* ctable_file = fopen(ctable_file_path, "wb");
-		
 		// read bwt file and construct occ table
 		char bwt_text[BUFFER_SIZE] = {0};
 		int size = 0;
@@ -115,25 +149,19 @@ int main(int argc, char *argv[]) {
 			itertaion ++ ;
 		}
 		
-		// write occ file
+		// occ table
 		for (i=0; i<row_size; i++) {
 			for (j=0; j<127; j++) {
 				if(i != 0){
 					occurance[i][j] =  occurance[i][j] + occurance[i-1][j];
 				}
 			}
-			fwrite(occurance[i], sizeof(int), 127, occ_file);
 		}
 		
 		// compute c table
 		for (i=1; i<127; i++) {
 			c_table[i] = occurance[row_size-1][i-1] + c_table[i-1];
 		}
-		// write c table file
-		fwrite(c_table, sizeof(int), 127, ctable_file);
-		
-		fclose(occ_file);
-		fclose(ctable_file);
 	}
 	
 
