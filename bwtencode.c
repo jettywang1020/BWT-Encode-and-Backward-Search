@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
 		buckets[i] = fopen(bucket_file_path, "a+b");
 	}
 	// assigne each index to related buckets
-	for(int i=0; i<file_size; i++){
+	for(i=0; i<file_size; i++){
 		int this_char = buffer[i];
 		FILE* bucket = buckets[this_char];
 		fwrite(&i, sizeof(int), 1, bucket);
