@@ -1,8 +1,6 @@
-#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-using namespace std;
 
 #define MAX_PATH_LENGTH 256
 
@@ -21,7 +19,7 @@ void Swap(struct Suffix *a, struct Suffix *b)
 }
 
 // compare function.
-bool compare(struct Suffix *a, struct Suffix *b, int delimter){
+int compare(struct Suffix *a, struct Suffix *b, int delimter){
 	int i = 0;
 	while (a->str[i] == b->str[i]) {
 		int ascii = a->str[i];
@@ -47,7 +45,8 @@ void QuickSort(struct Suffix *suffixes, int len, int delimter)
 	Swap(&suffixes[(int)rand() % len], &suffixes[len - 1]);
 
 	// reset the pivot index to zero, then scan
-	for (int i=0; i<len-1; i++)
+	int i;
+	for (i=0; i<len-1; i++)
 	{
 		if (compare(&suffixes[i], &suffixes[len - 1], delimter)){
 			Swap(&suffixes[i], &suffixes[pivot++]);
@@ -114,15 +113,14 @@ int main(int argc, char *argv[]) {
 	buffer[file_size] = '\0';
 	// allocate memory failed
 	if (buffer == NULL) {
-		cout << "Memory error" << endl;
 		exit(0);
 	}
 	// read file and the reult is the number of chars
 	fread(buffer, 1, file_size, original_file); 
 	fclose(original_file);
 	char last_char = buffer[file_size-1];
-	//cout << "Read File Done!" << endl;
 	
+	int i,j;
 	
 	/*********************************************************************************************
 	bucket sort
@@ -130,7 +128,7 @@ int main(int argc, char *argv[]) {
 	for instance: the ascii value of character A is 65, then file 65 is the bucket for A.
 	*********************************************************************************************/
 	FILE** buckets = (FILE**)malloc(sizeof(FILE*) * 128);
-	for(int i=0; i<128; i++){
+	for(i=0; i<128; i++){
 		// construct bucket file path
 		char bucket_id[4] = {0};
 		sprintf(bucket_id, "%d", i);
@@ -146,7 +144,6 @@ int main(int argc, char *argv[]) {
 		FILE* bucket = buckets[this_char];
 		fwrite(&i, sizeof(int), 1, bucket);
 	}
-	//cout << "Bucket Done!" << endl;
 	
 	
 	
@@ -175,7 +172,7 @@ int main(int argc, char *argv[]) {
 	int* delimiter_array = (int*)malloc(sizeof(int) * number_of_delimiters);
 	fread(delimiter_array, sizeof(int), number_of_delimiters, delimiter_file);
 	
-	for(int i=0; i<128; i++){
+	for(i=0; i<128; i++){
 		FILE* bucket = buckets[i];
 		// set the file pointer to the end
 		fseek(bucket , 0 , SEEK_END);
@@ -193,7 +190,7 @@ int main(int argc, char *argv[]) {
 			
 			// malloc an array to store suffix structs
 			struct Suffix* suffixes = (struct Suffix*)malloc(sizeof(struct Suffix) * number_of_indexes);
-			for (int j=0; j<number_of_indexes; j++) {
+			for (j=0; j<number_of_indexes; j++) {
 				suffixes[j].str = &buffer[index_array[j]];
 				suffixes[j].postion = index_array[j];
 			}
@@ -205,7 +202,7 @@ int main(int argc, char *argv[]) {
 			}
 			
 			//write bwt file
-			for (int j=0; j<number_of_indexes; j++) {
+			for (j=0; j<number_of_indexes; j++) {
 				int this_position;
 				if(suffixes[j].postion == 0){
 					this_position = file_size - 1;
@@ -226,7 +223,6 @@ int main(int argc, char *argv[]) {
 			free(index_array);
 		}
 	}
-	//cout << "Bwt File Done!" << endl;
 	
 	
 	/*********************************************************************************************
@@ -235,10 +231,10 @@ int main(int argc, char *argv[]) {
 	free(delimiter_array);
 	fclose(bwt_file);
 	fclose(aux_file);
-	for(int i=0; i<128; i++){
-		// close files
+	for(i=0; i<128; i++){
+		// close file
 		fclose(buckets[i]);
-		// delete files
+		// delete file
 		char bucket_id[4] = {0};
 		sprintf(bucket_id, "%d", i);
 		char bucket_file_path[MAX_PATH_LENGTH] = {0}; 

@@ -1,11 +1,8 @@
-#include <iostream>
-#include <unistd.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <sstream>
-using namespace std;
 
 #define MAX_PATH_LENGTH 256
 #define BUFFER_SIZE 1024 * 3
@@ -68,7 +65,8 @@ int main(int argc, char *argv[]) {
 	int row_size = ceil(temp);
 	// occ table
 	int** occurance = (int**)malloc(row_size * sizeof(int*)); 
-	for( int i=0; i<row_size; i++ ) {
+	int i;
+	for( i=0; i<row_size; i++ ) {
 		occurance[i] = (int*)malloc(127 * sizeof(int)); 
 	}
 	// c table
@@ -90,7 +88,8 @@ int main(int argc, char *argv[]) {
 		FILE* ctable_file = fopen(ctable_file_path, "rb");
 		
 		// read occ file
-		for (int i=0; i<row_size; i++) {
+		int i;
+		for (i=0; i<row_size; i++) {
 			fread(occurance[i], sizeof(int), 127, occ_file);
 		}
 		
@@ -108,7 +107,8 @@ int main(int argc, char *argv[]) {
 		int size = 0;
 		int itertaion = 0;
 		while((size = fread(bwt_text, sizeof(char), BUFFER_SIZE, bwt_file)) > 0){
-			for (int i = 0 ; i < size; i++) {
+			int i;
+			for (i = 0 ; i < size; i++) {
 				int ascii = bwt_text[i];
 				occurance[itertaion][ascii]++;
 			}
@@ -116,8 +116,9 @@ int main(int argc, char *argv[]) {
 		}
 		
 		// write occ file
-		for (int i=0; i<row_size; i++) {
-			for (int j=0; j<127; j++) {
+		int i, j;
+		for (i=0; i<row_size; i++) {
+			for (j=0; j<127; j++) {
 				if(i != 0){
 					occurance[i][j] =  occurance[i][j] + occurance[i-1][j];
 				}
@@ -126,7 +127,7 @@ int main(int argc, char *argv[]) {
 		}
 		
 		// compute c table
-		for (int i=1; i<127; i++) {
+		for (i=1; i<127; i++) {
 			c_table[i] = occurance[row_size-1][i-1] + c_table[i-1];
 		}
 		// write c table file
@@ -152,7 +153,7 @@ int main(int argc, char *argv[]) {
 			first = c_table[current_char] + occ(current_char, first - 1, occurance, bwt_file_name) + 1;
 			last = c_table[current_char] + occ(current_char, last, occurance, bwt_file_name);
 		}
-		cout << last - first + 1 << endl;
+		printf("%d\n", last - first + 1);
 	}
 	
 	/*********************************************************************************************
@@ -171,9 +172,9 @@ int main(int argc, char *argv[]) {
 			last = c_table[current_char] + occ(current_char, last, occurance, bwt_file_name);
 		}		
 		if( last - first + 1 == 0 ){
-			cout << 0 << endl;
+			printf("0\n");
 		} else if( last - first == 0 ){
-			cout << 1 << endl;
+			printf("1\n");
 		} else {
 			int* delimiters = (int*)malloc((last - first + 1) * sizeof(int));
 			for(int i=first; i<=last; i++){
@@ -199,13 +200,14 @@ int main(int argc, char *argv[]) {
 			qsort(delimiters, last - first + 1, sizeof(int), compare);
 			int previous = 0;
 			int counter = 0;
-			for(int i=0; i<last - first + 1; i++){
+			int i;
+			for(i=0; i<last - first + 1; i++){
 				if(delimiters[i] != previous){
 					previous = delimiters[i];
 					counter++;
 				}
 			}
-			cout << counter << endl;
+			printf("%d\n", counter);
 			
 			free(delimiters);
 		}
@@ -243,7 +245,8 @@ int main(int argc, char *argv[]) {
 			int no_of_delimiter = aux_file_size / sizeof(int);
 			
 			int* delimiters = (int*)malloc((last - first + 1) * sizeof(int));
-			for(int i=first; i<=last; i++){
+			int i;
+			for(i=first; i<=last; i++){
 				int position = i;
 				int j = 0;
 				// do backwark decode and the max length of each record is 5000
@@ -279,7 +282,7 @@ int main(int argc, char *argv[]) {
 			for(int i=0; i<last - first + 1; i++){
 				if(delimiters[i] != previous){
 					previous = delimiters[i];
-					cout << delimiters[i] << endl;
+					printf("%d\n", delimiters[i]);
 				}
 			}
 			free(delimiters);
@@ -291,19 +294,22 @@ int main(int argc, char *argv[]) {
 	-i backword search
 	*********************************************************************************************/
 	if(strcmp("-i", model) == 0){
-		stringstream ss(pattern);
-		string start_string;
-		string end_string;
-		getline(ss, start_string, ' ');
-		getline(ss, end_string, ' ');
-		stringstream stemp(start_string);
-		int start = 0;
-		stemp >> start;
-		stringstream send(end_string);
-		int end = 0;
-		send >> end;
+		// extract start postion and end postion
+		int start, end = 4;
+		char input[128] = {0}; 
+		strcpy(input, pattern);
+		char *split;
+		split = strtok(input, " ");
+		if(split){
+			sscanf(split, "%d", &start);
+		}
+		split = strtok(NULL, " ");
+		if(split){
+			sscanf(split, "%d", &end);
+		}
 		
-		for (int i = start; i <= end; i++) {
+		int i;
+		for (i = start; i <= end; i++) {
 			char* record = (char*)malloc(5000 * sizeof(char));
 			int length = 0;
 			int position = c_table[delimiter] + i;
@@ -315,10 +321,11 @@ int main(int argc, char *argv[]) {
 				int this_char = temp;
 				// if this character is delimiter, stop, otherwise, find next character
 				if(this_char == delimiter){
-					for (int j=length-1; j>=0; j--) {
-						cout << record[j];
+					int j;
+					for (j=length-1; j>=0; j--) {
+						printf("%c", record[j]);
 					}
-					cout << endl;
+					printf("\n");
 					break;
 				} else {
 					record[length] = temp;
