@@ -53,6 +53,8 @@ int main(int argc, char *argv[]) {
 	const char* model = argv[4];
 	const char* pattern = argv[5];
 	
+	int i, j, k;
+	
 	FILE* bwt_file = fopen(bwt_file_name, "r");
 	fseek(bwt_file , 0 , SEEK_END);
 	// get the file size
@@ -65,7 +67,7 @@ int main(int argc, char *argv[]) {
 	int row_size = ceil(temp);
 	// occ table
 	int** occurance = (int**)malloc(row_size * sizeof(int*)); 
-	int i;
+	
 	for( i=0; i<row_size; i++ ) {
 		occurance[i] = (int*)malloc(127 * sizeof(int)); 
 	}
@@ -88,7 +90,6 @@ int main(int argc, char *argv[]) {
 		FILE* ctable_file = fopen(ctable_file_path, "rb");
 		
 		// read occ file
-		int i;
 		for (i=0; i<row_size; i++) {
 			fread(occurance[i], sizeof(int), 127, occ_file);
 		}
@@ -107,7 +108,6 @@ int main(int argc, char *argv[]) {
 		int size = 0;
 		int itertaion = 0;
 		while((size = fread(bwt_text, sizeof(char), BUFFER_SIZE, bwt_file)) > 0){
-			int i;
 			for (i = 0 ; i < size; i++) {
 				int ascii = bwt_text[i];
 				occurance[itertaion][ascii]++;
@@ -116,7 +116,6 @@ int main(int argc, char *argv[]) {
 		}
 		
 		// write occ file
-		int i, j;
 		for (i=0; i<row_size; i++) {
 			for (j=0; j<127; j++) {
 				if(i != 0){
@@ -177,9 +176,9 @@ int main(int argc, char *argv[]) {
 			printf("1\n");
 		} else {
 			int* delimiters = (int*)malloc((last - first + 1) * sizeof(int));
-			for(int i=first; i<=last; i++){
+			for(i=first; i<=last; i++){
 				int position = i;
-				int j = 0;
+				j = 0;
 				// do backwark decode and the max length of each record is 5000
 				while(j < 5000){
 					fseek(bwt_file , position - 1, SEEK_SET);
@@ -200,7 +199,6 @@ int main(int argc, char *argv[]) {
 			qsort(delimiters, last - first + 1, sizeof(int), compare);
 			int previous = 0;
 			int counter = 0;
-			int i;
 			for(i=0; i<last - first + 1; i++){
 				if(delimiters[i] != previous){
 					previous = delimiters[i];
@@ -245,10 +243,9 @@ int main(int argc, char *argv[]) {
 			int no_of_delimiter = aux_file_size / sizeof(int);
 			
 			int* delimiters = (int*)malloc((last - first + 1) * sizeof(int));
-			int i;
 			for(i=first; i<=last; i++){
 				int position = i;
-				int j = 0;
+				j = 0;
 				// do backwark decode and the max length of each record is 5000
 				while(j < 5000){
 					fseek(bwt_file , position - 1, SEEK_SET);
@@ -279,7 +276,7 @@ int main(int argc, char *argv[]) {
 			// sort the index of demiliters and remove reduance
 			qsort(delimiters, last - first + 1, sizeof(int), compare);
 			int previous = 0;
-			for(int i=0; i<last - first + 1; i++){
+			for(i=0; i<last - first + 1; i++){
 				if(delimiters[i] != previous){
 					previous = delimiters[i];
 					printf("%d\n", delimiters[i]);
@@ -308,12 +305,11 @@ int main(int argc, char *argv[]) {
 			sscanf(split, "%d", &end);
 		}
 		
-		int i;
 		for (i = start; i <= end; i++) {
 			char* record = (char*)malloc(5000 * sizeof(char));
 			int length = 0;
 			int position = c_table[delimiter] + i;
-			int j = 0;
+			j = 0;
 			// do backwark decode
 			while(j < 5000){
 				fseek(bwt_file , position - 1, SEEK_SET);
@@ -321,9 +317,8 @@ int main(int argc, char *argv[]) {
 				int this_char = temp;
 				// if this character is delimiter, stop, otherwise, find next character
 				if(this_char == delimiter){
-					int j;
-					for (j=length-1; j>=0; j--) {
-						printf("%c", record[j]);
+					for (k=length-1; k>=0; k--) {
+						printf("%c", record[k]);
 					}
 					printf("\n");
 					break;
@@ -341,7 +336,7 @@ int main(int argc, char *argv[]) {
 	// close bwt file
 	fclose(bwt_file);
 	// free memory
-	for( int i=0; i<row_size; i++ ) {
+	for(i=0; i<row_size; i++) {
 		free(occurance[i]);
 	}
 	free(occurance);
