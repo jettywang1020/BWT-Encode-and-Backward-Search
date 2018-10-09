@@ -78,12 +78,14 @@ int main(int argc, char *argv[]) {
 	if(file_size > 1024 * 1024){
 		// occ file path
 		char occ_file_path[MAX_PATH_LENGTH] = {0};
-		strcpy(occ_file_path, bwt_file_name);
-		strcat(occ_file_path, ".occ");
+		strcpy(occ_file_path, temp_folder_name);
+		strcat(occ_file_path, "/");
+		strcat(occ_file_path, "occ");
 		// c table file path
 		char ctable_file_path[MAX_PATH_LENGTH] = {0};
-		strcpy(ctable_file_path, bwt_file_name);
-		strcat(ctable_file_path, ".ctable");
+		strcpy(ctable_file_path, temp_folder_name);
+		strcat(ctable_file_path, "/");
+		strcat(ctable_file_path, "ctable");
 		
 		// if occ file and c table file exist
 		if( access( occ_file_path, F_OK ) != -1  && access( ctable_file_path, F_OK ) != -1) {
